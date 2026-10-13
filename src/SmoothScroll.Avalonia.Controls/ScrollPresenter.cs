@@ -647,10 +647,14 @@ public sealed partial class ScrollPresenter : ContentPresenter, IScrollable, ISc
             {
                 // Calculate the new anchor element if necessary.
                 EnsureAnchorElementSelection();
+            }
 
-                // Do the arrange.
-                ArrangeOverrideImpl(size, -Offset);
+            // Establish child bounds and detect anchor movement.
+            var arrangedOffset = Offset;
+            ArrangeOverrideImpl(size, -arrangedOffset);
 
+            if (isAnchoring)
+            {
                 // If the anchor moved during the arrange, we need to adjust the offset and do another arrange.
                 var anchorShift = TrackAnchor();
 
@@ -687,24 +691,25 @@ public sealed partial class ScrollPresenter : ContentPresenter, IScrollable, ISc
                         _compositionUpdate = false;
                     }
                 }
-
-                ArrangeOverrideImpl(size, -Offset);
-            }
-            else
-            {
-                ArrangeOverrideImpl(size, -Offset);
             }
 
             Viewport = finalSize;
             _isAnchorElementDirty = true;
 
+            // Updating the scrollable area may coerce Offset.
             ApplyScrollableArea(CalculateScrollableArea(ZoomFactor));
+
+            // Re-arrange only if Offset changed since the first arrange.
+            if (!Offset.NearlyEquals(arrangedOffset))
+            {
+                ArrangeOverrideImpl(size, -Offset);
+            }
+
             SynchronizeCompositionVisualBeforeFirstAnimation();
         }
         finally
         {
             _arranging = false;
-
         }
 
         return finalSize;
